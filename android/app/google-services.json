@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "6420289699",
+    "project_id": "searchbot-6947b",
+    "storage_bucket": "searchbot-6947b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:6420289699:android:31d2df809c18f7105f8716",
+        "android_client_info": {
+          "package_name": "com.camilo.medinah.searchbot"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDJG_1Bv2EMGtnUDNaJIpF4TkBbbql2zeQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

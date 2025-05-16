@@ -24,6 +24,10 @@ class _SignUpPageState extends State<SignUpPage> {
 
   DateTime _bornDate = DateTime.now();
 
+  List _lreservas = [];
+  List _lnegocios = [];
+  List _historial = [];
+
   final _name = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
@@ -204,9 +208,11 @@ class _SignUpPageState extends State<SignUpPage> {
       print('Ya existe una cuenta con ese correo electronico');
     } else if (result == 'invalid-email') {
       showMsg('Él correo electronico esta mal escrito');
+    } else if (result == 'invalid-credential') {
+      showMsg('Él usuario no fue creado');
     } else {
       var genre = (_genre == Genre.male) ? "Masculino" : "Femenino";
-      var _user = User(result, _name.text, _email.text, genre, _bornDate, "" );
+      var _user = User(result, _name.text, _email.text, genre, _bornDate, "", _lreservas, _lnegocios, _historial);
       _createUserInDB(_user);
     }
   }

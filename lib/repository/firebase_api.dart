@@ -8,7 +8,7 @@ class FirebaseApi {
   Future<String?> createUser(String emailAddress, String password) async {
     try {
       final credential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(
+          .createUserWithEmailAndPassword(
         email: emailAddress,
         password: password,
       );
@@ -18,6 +18,7 @@ class FirebaseApi {
       return e.code;
     } on FirebaseException catch (e) {
       print("FirebaseException ${e.code}");
+      return e.code;
     }
   }
 
@@ -54,7 +55,7 @@ class FirebaseApi {
     try {
       var db = FirebaseFirestore.instance;
       final document = await db
-          .collection('users')
+          .collection('usuarios')
           .doc(user.uid)
           .set(user.toJson());
       return user.uid;

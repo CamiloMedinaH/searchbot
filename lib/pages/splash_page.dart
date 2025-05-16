@@ -25,16 +25,16 @@ class _SplashPageState extends State<SplashPage> {
   Widget build(BuildContext context) {
     return const Scaffold(
       body: Center(
-        child: Image(image: AssetImage("assets(images/logo.png"),
-        width: 150,
-        height: 150,
+        child: Image(image: AssetImage("assets/images/logo.png"),
+        width: 400,
+        height: 400,
         ),
       ),
     );
   }
 
   Future<void> _closeSplash() async {
-    Future.delayed(const Duration(seconds: 2), () async {
+    Future.delayed(const Duration(seconds: 4), () async {
       var result = _firebaseApi.validateSession();
       if (await result) {
         Navigator.pushReplacement(
