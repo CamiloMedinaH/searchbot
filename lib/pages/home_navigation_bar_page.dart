@@ -18,6 +18,8 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
   final searchText = TextEditingController();
   final FirebaseApi _firebaseApi = FirebaseApi();
 
+  late PopupMenuItem<String> items;
+
   static const List<Widget> _widgetOptions = [
     MyProfilePage(),
     MyProfilePage()
@@ -29,11 +31,98 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
     });
   }
 
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    loadItems();
+  }
+
+  Future<void> loadItems() async {
+    final Popup = await desplegable();
+    setState(() {
+      items = Popup;
+    });
+  }
+
+  Future<PopupMenuItem<String>> desplegable() async {
+    var result = _firebaseApi.validateSession();
+    if (await result) {
+      return PopupMenuItem(
+          child: Text('Iniciar sesion'),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => const SignInPage()
+              ),
+            );
+          }
+      );
+    }
+    else {
+      return PopupMenuItem(
+        child: Text('Cerrar sesion'),
+        onTap: _onSignOutButtonClicked,
+      );
+    }
+  }
+
   void _onSignOutButtonClicked() {
     _firebaseApi.signOut();
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const SignInPage()),
+    );
+  }
+
+  void mostrarMenuLateral(BuildContext context) {
+    showGeneralDialog(
+      context: context,
+      barrierLabel: "Menu",
+      barrierDismissible: true,
+      barrierColor: Colors.black.withOpacity(0.5), // fondo opaco
+      transitionDuration: Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Align(
+          alignment: Alignment.centerLeft,
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.75,
+              height: double.infinity,
+              color: Colors.white,
+              child: Column(
+                children: [
+                  SizedBox(height: 35,),
+                  TextButton(
+                    child: Text("Mi perfil"),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const MyProfilePage()
+                        ),
+                      );
+                    },
+                  )
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final slide = Tween<Offset>(
+          begin: Offset(-1, 0),
+          end: Offset(0, 0),
+        ).animate(animation);
+
+        return SlideTransition(
+          position: slide,
+          child: child,
+        );
+      },
     );
   }
 
@@ -67,7 +156,7 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
                                 ),
                                 prefixIcon: IconButton(
                                     onPressed: () {
-
+                                      mostrarMenuLateral(context);
                                     },
                                     icon: Icon(Icons.list)),
 
@@ -78,13 +167,7 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
                                     // Puedes manejar la opción seleccionada
                                   },
                                   itemBuilder: (BuildContext context) => [
-                                    PopupMenuItem(
-                                      child: Text('Iniciar sesion'),
-                                    ),
-                                    PopupMenuItem(
-                                      child: Text('Cerrar sesion'),
-                                      onTap: _onSignOutButtonClicked,
-                                    ),
+                                    items
                                   ],
                                 ),
                                 labelText: "Buscar"),
