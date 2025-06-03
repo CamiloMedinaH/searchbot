@@ -103,7 +103,7 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
         .collection('usuarios')
         .doc(uid)
         .snapshots()
-        .map((doc) {
+        .map((doc){
       final data = doc.data();
       return List<String>.from(data?['LNegocios'] ?? []);
     });
