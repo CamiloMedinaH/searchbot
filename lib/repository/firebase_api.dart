@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/user.dart' as UserApp;
+import '../models/negocios.dart' as NegociosApp;
 
 class FirebaseApi {
 
@@ -59,6 +60,26 @@ class FirebaseApi {
           .doc(user.uid)
           .set(user.toJson());
       return user.uid;
+    } on FirebaseException catch (e) {
+      print("FirebaseException ${e.message}");
+      return e.code;
+    }
+  }
+
+  Future<String> createNegocioInDB(NegociosApp.negocios negocio) async {
+    try {
+      var db = FirebaseFirestore.instance;
+      final usuarioID = FirebaseAuth.instance.currentUser?.uid;
+      final NegocioID = await db
+          .collection('negocio')
+          .doc();
+      negocio.nid = NegocioID.id;
+      negocio.uid= usuarioID;
+      final userRef = db.collection("usuarios").doc(usuarioID).update({
+        "LNegocios": FieldValue.arrayUnion([negocio.nid])
+      });
+      final document = await NegocioID.set(negocio.toJson());
+      return negocio.nid;
     } on FirebaseException catch (e) {
       print("FirebaseException ${e.message}");
       return e.code;

@@ -1,18 +1,25 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:searchbot/pages/my_profile_page.dart';
+import 'package:searchbot/pages/nuevo_negocio.dart';
 import 'package:searchbot/pages/sign_in_page.dart';
 import 'package:searchbot/pages/sign_up_page.dart';
 
 import 'package:searchbot/repository/firebase_api.dart';
 
 class HomeNavigationBarPage extends StatefulWidget {
-  const HomeNavigationBarPage({super.key});
+  const HomeNavigationBarPage({super.key, required this.uid});
+
+  final String uid;
 
   @override
   State<HomeNavigationBarPage> createState() => _HomeNavigationBarPageState();
 }
 
 class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
+
+  late Stream<List<String>> NegociosFuturo;
 
   int _selectedIndex = 0;
   final searchText = TextEditingController();
@@ -34,6 +41,8 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
   @override
   void initState() {
     // TODO: implement initState
+    //NegociosFuturo = obtenerNegocios();
+    print(widget.uid);
     super.initState();
     loadItems();
   }
@@ -75,6 +84,30 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
       MaterialPageRoute(builder: (context) => const SignInPage()),
     );
   }
+/*
+  Future<List<String>> obtenerNegocios() async {
+    final usuarioID = FirebaseAuth.instance.currentUser?.uid;
+    final snapshot = await FirebaseFirestore.instance.collection('usuarios').doc(usuarioID).get();
+    if (snapshot.exists) {
+      final data = snapshot.data()!;
+      print(List<String>.from(data["LNegocios"]??[])[1]);
+      return List<String>.from(data["LNegocios"]??[]);
+    } else {
+      return [];
+    }
+  }
+*/
+
+  Stream<List<String>> obtenerNegocios(String uid) {
+    return FirebaseFirestore.instance
+        .collection('usuarios')
+        .doc(uid)
+        .snapshots()
+        .map((doc) {
+      final data = doc.data();
+      return List<String>.from(data?['LNegocios'] ?? []);
+    });
+  }
 
   void mostrarMenuLateral(BuildContext context) {
     showGeneralDialog(
@@ -89,9 +122,9 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
           child: Material(
             color: Colors.transparent,
             child: Container(
-              width: MediaQuery.of(context).size.width * 0.75,
+              width: MediaQuery.of(context).size.width * 0.60,
               height: double.infinity,
-              color: Colors.white,
+              color: Colors.white70,
               child: Column(
                 children: [
                   SizedBox(height: 35,),
@@ -105,7 +138,176 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
                         ),
                       );
                     },
-                  )
+                  ),
+                  TextButton(
+                    child: Row(
+                      children: [
+                        Icon(Icons.star),
+                        SizedBox(width: 10,),
+                        Text("Lugares favoritos")
+                      ],
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const MyProfilePage()
+                        ),
+                      );
+                    },
+                  ),
+                  TextButton(
+                    child: Row(
+                      children: [
+                        Icon(Icons.search),
+                        SizedBox(width: 10,),
+                        Text("Tipo de busqueda")
+                      ],
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const MyProfilePage()
+                        ),
+                      );
+                    },
+                  ),
+                  TextButton(
+                    child: Row(
+                      children: [
+                        Icon(Icons.location_on),
+                        SizedBox(width: 10,),
+                        Text("Rango de busqueda")
+                      ],
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const MyProfilePage()
+                        ),
+                      );
+                    },
+                  ),
+                  ExpansionTile(
+                    title: Row(
+                      children: [
+                        Icon(Icons.home_filled),
+                        SizedBox(width: 10,),
+                        Text( "Negocios", style: TextStyle(color: Colors.deepPurple))
+                      ],
+                    ),
+                    children: [
+                      /*
+                      SingleChildScrollView(
+                        child: FutureBuilder<List<String>>(
+                          future: NegociosFuturo,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              print("esperando");
+                              return Center(child: CircularProgressIndicator()); }
+                            if (snapshot.hasError) {
+                              print("Error");
+                              return Center(child: Text('Error al cargar intereses')); }
+                            final negocios = snapshot.data ?? [];
+                            if (negocios.isEmpty) {
+                              print("no tiene");
+                              return Center(child: Text('No hay intereses guardados.')); }
+                            print("paso");
+                            return SizedBox(
+                              height: 200,
+                              child: ListView(
+                                children: negocios.map((negocio) {
+                                  return ElevatedButton(
+                                    onPressed: () {},
+                                    child: Text(negocio),
+                                  );
+                                }).toList(),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      */
+                      StreamBuilder<List<String>>(
+                        stream: obtenerNegocios(widget.uid),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting)
+                            return Center(child: CircularProgressIndicator());
+                          if (snapshot.hasError)
+                            return Center(child: Text('Error al cargar datos'));
+                          final negocios = snapshot.data ?? [];
+                          if (negocios.isEmpty)
+                            return Center(child: Text('Sin negocios'));
+                          return SizedBox(
+                            height: 200,
+                            child: ListView(
+                              children: negocios.map((i) {
+                                return ElevatedButton(
+                                  onPressed: () {},
+                                  child: Text(i),
+                                );
+                              }).toList(),
+                            ),
+                          );
+                        },
+                      ),
+                      ListTile(
+                        title: TextButton(
+                          child: Row(
+                            children: [
+                              Icon(Icons.add_box_outlined),
+                              SizedBox(width: 10,),
+                              Text("Nuevo Negocio"),
+                            ],
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => const NuevoNegocio()
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  TextButton(
+                    child: Row(
+                      children: [
+                        Icon(Icons.share),
+                        SizedBox(width: 10,),
+                        Text("Compartir direccion")
+                      ],
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const MyProfilePage()
+                        ),
+                      );
+                    },
+                  ),
+                  TextButton(
+                    child: Row(
+                      children: [
+                        Icon(Icons.settings),
+                        SizedBox(width: 10,),
+                        Text("Configuraciones")
+                      ],
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const MyProfilePage()
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -183,35 +385,5 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
         ],
       )
     );
-
-
-
-
-
-    /*
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Mis peliculas"),
-      ),
-      body: Center(
-        child: _widgetOptions.elementAt(_selectedIndex),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: [
-          BottomNavigationBarItem(
-              icon: Icon(Icons.list),
-              label: "Mis peliculas"
-          ),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.list),
-              label: "Mi Perfil"
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-      ),
-    );*/
-
-
   }
 }

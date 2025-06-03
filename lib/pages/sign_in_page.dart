@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:searchbot/pages/home_navigation_bar_page.dart';
 import 'package:searchbot/pages/recovery_password.dart';
@@ -127,6 +128,7 @@ class _SignInPageState extends State<SignInPage> {
     if (_email.text.isEmpty || _password.text.isEmpty) {
       showMsg("Debe digitar todos los campos");
     } else {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
       var result = await _firebaseApi.signInUser(_email.text, _password.text);
       if (result == 'invalid-credential') {
         showMsg('Correo electronico o contraseña incorrecta');
@@ -138,7 +140,7 @@ class _SignInPageState extends State<SignInPage> {
         showMsg('Bienvenido');
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => HomeNavigationBarPage()),
+          MaterialPageRoute(builder: (context) => HomeNavigationBarPage(uid:uid!)),
         );
       }
     }
