@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:searchbot/pages/home_navigation_bar_page.dart';
 import 'package:searchbot/pages/sign_in_page.dart';
@@ -35,16 +36,17 @@ class _SplashPageState extends State<SplashPage> {
 
   Future<void> _closeSplash() async {
     Future.delayed(const Duration(seconds: 4), () async {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
       var result = _firebaseApi.validateSession();
       if (await result) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (contesxt) => SignInPage()),
+          MaterialPageRoute(builder: (context) => SignInPage()),
         );
       } else {
         Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => HomeNavigationBarPage())
+            MaterialPageRoute(builder: (context) => HomeNavigationBarPage(uid:uid))
         );
       }
     });

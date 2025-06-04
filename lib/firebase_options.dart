@@ -65,4 +65,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'searchbot-6947b.firebasestorage.app',
     iosBundleId: 'com.camilo.medinah.searchbot',
   );
+
 }

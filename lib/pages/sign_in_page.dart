@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:searchbot/pages/home_navigation_bar_page.dart';
 import 'package:searchbot/pages/recovery_password.dart';
@@ -136,9 +137,10 @@ class _SignInPageState extends State<SignInPage> {
         showMsg('Revise su conexion a internet');
       } else {
         showMsg('Bienvenido');
+        final uid = FirebaseAuth.instance.currentUser?.uid;
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => HomeNavigationBarPage()),
+          MaterialPageRoute(builder: (context) => HomeNavigationBarPage(uid:uid!)),
         );
       }
     }
