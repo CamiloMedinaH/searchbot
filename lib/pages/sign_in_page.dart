@@ -128,7 +128,6 @@ class _SignInPageState extends State<SignInPage> {
     if (_email.text.isEmpty || _password.text.isEmpty) {
       showMsg("Debe digitar todos los campos");
     } else {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
       var result = await _firebaseApi.signInUser(_email.text, _password.text);
       if (result == 'invalid-credential') {
         showMsg('Correo electronico o contraseña incorrecta');
@@ -138,6 +137,7 @@ class _SignInPageState extends State<SignInPage> {
         showMsg('Revise su conexion a internet');
       } else {
         showMsg('Bienvenido');
+        final uid = FirebaseAuth.instance.currentUser?.uid;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => HomeNavigationBarPage(uid:uid!)),

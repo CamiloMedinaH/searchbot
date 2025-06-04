@@ -41,12 +41,12 @@ class _SplashPageState extends State<SplashPage> {
       if (await result) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (contesxt) => HomeNavigationBarPage(uid:uid!)),
+          MaterialPageRoute(builder: (context) => SignInPage()),
         );
       } else {
         Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => HomeNavigationBarPage(uid:uid!))
+            MaterialPageRoute(builder: (context) => HomeNavigationBarPage(uid:uid))
         );
       }
     });

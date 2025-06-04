@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:searchbot/pages/detail_negocio_page.dart';
 import 'package:searchbot/pages/my_profile_page.dart';
 import 'package:searchbot/pages/nuevo_negocio.dart';
 import 'package:searchbot/pages/sign_in_page.dart';
@@ -11,7 +12,7 @@ import 'package:searchbot/repository/firebase_api.dart';
 class HomeNavigationBarPage extends StatefulWidget {
   const HomeNavigationBarPage({super.key, required this.uid});
 
-  final String uid;
+  final String? uid;
 
   @override
   State<HomeNavigationBarPage> createState() => _HomeNavigationBarPageState();
@@ -84,19 +85,6 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
       MaterialPageRoute(builder: (context) => const SignInPage()),
     );
   }
-/*
-  Future<List<String>> obtenerNegocios() async {
-    final usuarioID = FirebaseAuth.instance.currentUser?.uid;
-    final snapshot = await FirebaseFirestore.instance.collection('usuarios').doc(usuarioID).get();
-    if (snapshot.exists) {
-      final data = snapshot.data()!;
-      print(List<String>.from(data["LNegocios"]??[])[1]);
-      return List<String>.from(data["LNegocios"]??[]);
-    } else {
-      return [];
-    }
-  }
-*/
 
   Stream<List<String>> obtenerNegocios(String uid) {
     return FirebaseFirestore.instance
@@ -107,6 +95,18 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
       final data = doc.data();
       return List<String>.from(data?['LNegocios'] ?? []);
     });
+  }
+
+  Future<List<String>> obtenerNombresDeNegocios(List<String> idsNegocios) async {
+    final firestore = FirebaseFirestore.instance;
+    final nombres = <String>[];
+    for (String id in idsNegocios) {
+      final doc = await firestore.collection('negocio').doc(id).get();
+      if (doc.exists) {
+        nombres.add(doc.data()?['nombre'] ?? 'Negocio sin nombre');
+      }
+    }
+    return nombres;
   }
 
   void mostrarMenuLateral(BuildContext context) {
@@ -199,39 +199,10 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
                       ],
                     ),
                     children: [
-                      /*
-                      SingleChildScrollView(
-                        child: FutureBuilder<List<String>>(
-                          future: NegociosFuturo,
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState == ConnectionState.waiting) {
-                              print("esperando");
-                              return Center(child: CircularProgressIndicator()); }
-                            if (snapshot.hasError) {
-                              print("Error");
-                              return Center(child: Text('Error al cargar intereses')); }
-                            final negocios = snapshot.data ?? [];
-                            if (negocios.isEmpty) {
-                              print("no tiene");
-                              return Center(child: Text('No hay intereses guardados.')); }
-                            print("paso");
-                            return SizedBox(
-                              height: 200,
-                              child: ListView(
-                                children: negocios.map((negocio) {
-                                  return ElevatedButton(
-                                    onPressed: () {},
-                                    child: Text(negocio),
-                                  );
-                                }).toList(),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      */
+                      widget.uid!.isNotEmpty?
+
                       StreamBuilder<List<String>>(
-                        stream: obtenerNegocios(widget.uid),
+                        stream: obtenerNegocios(widget.uid!),
                         builder: (context, snapshot) {
                           if (snapshot.connectionState == ConnectionState.waiting)
                             return Center(child: CircularProgressIndicator());
@@ -240,19 +211,41 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
                           final negocios = snapshot.data ?? [];
                           if (negocios.isEmpty)
                             return Center(child: Text('Sin negocios'));
-                          return SizedBox(
-                            height: 200,
-                            child: ListView(
-                              children: negocios.map((i) {
-                                return ElevatedButton(
-                                  onPressed: () {},
-                                  child: Text(i),
-                                );
-                              }).toList(),
-                            ),
-                          );
+
+                          return FutureBuilder<List<String>>(
+                                  future: obtenerNombresDeNegocios(negocios),
+                                  builder: (context, snapshotNombres) {
+                                    if (snapshotNombres.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return Center(
+                                          child: CircularProgressIndicator());
+                                    }
+                                    final nombres = snapshotNombres.data ?? [];
+                                    return SizedBox(
+                                      height: 200,
+                                      child: ListView(
+                                        children: nombres.asMap().entries.map((entry) {
+                                          int index = entry.key;
+                                          String i = entry.value;
+                                          return ElevatedButton(
+                                            onPressed: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                    builder: (context) => DetailNegocioPage(nID:negocios[index])
+                                                ),
+                                              );
+                                            },
+                                            child: Text('${i}'),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    );
+                                  });
+
                         },
-                      ),
+                      ):Text(""),
+
                       ListTile(
                         title: TextButton(
                           child: Row(

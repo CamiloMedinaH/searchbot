@@ -1,4 +1,9 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:searchbot/repository/firebase_api.dart';
 import 'package:searchbot/models/negocios.dart';
 
@@ -24,13 +29,12 @@ class _NuevoNegocioState extends State<NuevoNegocio> {
 
   String _uid = 'ozfjnvlzkcv';
 
-  final _logo = "Hola";
+
 
   double _latitud = 15;
   double _longitud = 30;
 
   DateTime _fechaCreacion = DateTime.now();
-
 
   List _Lproductos = [];
   List _Lreservas = [];
@@ -38,7 +42,7 @@ class _NuevoNegocioState extends State<NuevoNegocio> {
   final _productos = TextEditingController();
   final _reservas = TextEditingController();
 
-  double _rating = 3.0;
+  File? image;
 
   @override
   Widget build(BuildContext context) {
@@ -54,13 +58,17 @@ class _NuevoNegocioState extends State<NuevoNegocio> {
                   decoration: const BoxDecoration(color: Colors.white),
                   height: 170,
                   child: Stack(children: [
-                    Image(image: AssetImage("assets/images/logo.png"), width: 150, height: 150,),
+                    image != null
+                    ? Image.file(image!, width: 150, height: 150,)
+                    : const Image(image: AssetImage("assets/images/logo.png"), width: 150, height: 150,),
                     Positioned(
                       bottom: 0,
                       right: 0,
                       child: IconButton(
                           alignment: Alignment.bottomLeft,
-                          onPressed: null,
+                          onPressed: () {
+                            pickImage();
+                          },
                           icon: const Icon(Icons.camera_alt)
                       ),
                     )
@@ -105,15 +113,6 @@ class _NuevoNegocioState extends State<NuevoNegocio> {
                 SizedBox(
                   height: 16,
                 ),
-                TextFormField(
-                  controller: _productos,
-                  decoration: const InputDecoration(
-                      border: OutlineInputBorder(), labelText: "Opinion"),
-                  keyboardType: TextInputType.text,
-                ),
-                SizedBox(
-                  height: 16,
-                ),
                 ElevatedButton(
                     onPressed: () {
                       _GuardarNegocio();
@@ -128,6 +127,9 @@ class _NuevoNegocioState extends State<NuevoNegocio> {
 
 
   void _GuardarNegocio() async {
+
+    var picture = "";
+
     var negocio = negocios(
       "",
       _name.text,
@@ -135,7 +137,7 @@ class _NuevoNegocioState extends State<NuevoNegocio> {
       _activo,
       _tipo,
       _uid,
-      _logo,
+      picture,
       _latitud,
       _longitud,
       _fechaCreacion,
@@ -165,6 +167,35 @@ class _NuevoNegocioState extends State<NuevoNegocio> {
     );
   }
 
+  Future  pickImage() async{
+    try{
+      final image = await ImagePicker().pickImage(source: ImageSource.gallery);
+      if(image == null) return;
 
+      final imageTemp = File(image.path);
 
+      setState(() {
+        this.image = imageTemp;
+      });
+
+    } on PlatformException catch(e){
+      print('Failed to pick image: $e');
+    }
+  }
+
+  Future  pickImageFromCamera() async{
+    try{
+      final image = await ImagePicker().pickImage(source: ImageSource.camera);
+      if(image == null) return;
+
+      final imageTemp = File(image.path);
+
+      setState(() {
+        this.image = imageTemp;
+      });
+
+    } on PlatformException catch(e){
+      print('Failed to pick image: $e');
+    }
+  }
 }
