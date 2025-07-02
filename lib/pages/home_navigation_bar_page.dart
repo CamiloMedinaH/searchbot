@@ -103,6 +103,7 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
     for (String id in idsNegocios) {
       final doc = await firestore.collection('negocio').doc(id).get();
       if (doc.exists) {
+        print(doc.data()?['nombre']);
         nombres.add(doc.data()?['nombre'] ?? 'Negocio sin nombre');
       }
     }
@@ -208,6 +209,7 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
                             return Center(child: CircularProgressIndicator());
                           if (snapshot.hasError)
                             return Center(child: Text('Error al cargar datos'));
+                          print(snapshot.data);
                           final negocios = snapshot.data ?? [];
                           if (negocios.isEmpty)
                             return Center(child: Text('Sin negocios'));
