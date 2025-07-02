@@ -47,12 +47,12 @@ class _SplashPageState extends State<SplashPage> {
       if (await result) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => Mapapage(posicionActual)),
+          MaterialPageRoute(builder: (context) => HomeNavigationBarPage(posicionActual, uid: uid)),
         );
       } else {
         Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => Mapapage(posicionActual))
+            MaterialPageRoute(builder: (context) => SignInPage())
         );
       }
     });
@@ -63,7 +63,6 @@ class _SplashPageState extends State<SplashPage> {
     if (!servicioHabilitado) {
       return; // Debes pedir al usuario que habilite la ubicación.
     }
-
     LocationPermission permiso = await Geolocator.checkPermission();
     if (permiso == LocationPermission.denied) {
       permiso = await Geolocator.requestPermission();
@@ -71,16 +70,13 @@ class _SplashPageState extends State<SplashPage> {
         return; // El usuario denegó el permiso.
       }
     }
-
     if (permiso == LocationPermission.deniedForever) {
       return; // El usuario bloqueó los permisos.
     }
-
     Position posicion = await Geolocator.getCurrentPosition();
     setState(() {
       posicionActual = LatLng(posicion.latitude, posicion.longitude);
     });
-    print(posicionActual);
   }
 }
 

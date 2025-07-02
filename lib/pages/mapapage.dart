@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:searchbot/pages/my_profile_page.dart';
 
 class Mapapage extends StatefulWidget {
 
@@ -45,12 +46,16 @@ class _MapapageState extends State<Mapapage> {
                 point: posicionActual, // Mismo punto que el centro
               ),
               Marker(
-                child: Builder(
-                  builder: (ctx) => const Icon(
-                    Icons.location_on,
-                    color: Colors.red,
-                    size: 30,
-                  ),
+                child: IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const MyProfilePage()
+                      ),
+                    );
+                  },
+                  icon: Icon(Icons.location_on, size: 30, color: Colors.red,),
                 ),
                 width: 80.0,
                 height: 80.0,

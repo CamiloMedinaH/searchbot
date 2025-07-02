@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:searchbot/pages/detail_negocio_page.dart';
 import 'package:searchbot/pages/my_profile_page.dart';
 import 'package:searchbot/pages/nuevo_negocio.dart';
@@ -10,17 +12,20 @@ import 'package:searchbot/pages/sign_up_page.dart';
 import 'package:searchbot/repository/firebase_api.dart';
 
 class HomeNavigationBarPage extends StatefulWidget {
-  const HomeNavigationBarPage({super.key, required this.uid});
+  const HomeNavigationBarPage(this.posicionActual, {super.key, required this.uid});
 
+  final dynamic posicionActual;
   final String? uid;
 
   @override
-  State<HomeNavigationBarPage> createState() => _HomeNavigationBarPageState();
+  State<HomeNavigationBarPage> createState() => _HomeNavigationBarPageState(posicionActual);
 }
 
 class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
 
   late Stream<List<String>> NegociosFuturo;
+
+
 
   int _selectedIndex = 0;
   final searchText = TextEditingController();
@@ -32,6 +37,9 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
     MyProfilePage(),
     MyProfilePage()
   ];
+
+  final posicionActual;
+  _HomeNavigationBarPageState(this.posicionActual);
 
   void _onItemTapped(int index) {
     setState(() {
@@ -97,6 +105,12 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
     });
   }
 
+  Future<DocumentSnapshot<Map<String, dynamic>>> obtenerUbicacionnes() async {
+    final doc = await FirebaseFirestore.instance.collection('negocio').doc().get();
+    print(doc);
+    return doc;
+  }
+
   Future<List<String>> obtenerNombresDeNegocios(List<String> idsNegocios) async {
     final firestore = FirebaseFirestore.instance;
     final nombres = <String>[];
@@ -109,6 +123,8 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
     }
     return nombres;
   }
+
+
 
   void mostrarMenuLateral(BuildContext context) {
     showGeneralDialog(
@@ -149,12 +165,7 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
                       ],
                     ),
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const MyProfilePage()
-                        ),
-                      );
+                      obtenerUbicacionnes();
                     },
                   ),
                   TextButton(
@@ -331,10 +342,50 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
           Expanded(
             child: Stack(
               children: [
-                Image.asset(
-                  "assets/images/fondo1.png",
-                  width: double.infinity,
-                  fit: BoxFit.cover, ),
+                FlutterMap(
+                  options: MapOptions(
+                    initialCenter: posicionActual,
+                    initialZoom: 13.0,
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.ejemplo.tumapa',
+                    ),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          child: Builder(
+                            builder: (ctx) => const Icon(
+                              Icons.my_location,
+                              color: Colors.blue,
+                              size: 30,
+                            ),
+                          ),
+                          width: 80.0,
+                          height: 80.0,
+                          point: posicionActual, // Mismo punto que el centro
+                        ),
+                        Marker(
+                          child: IconButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => const MyProfilePage()
+                                ),
+                              );
+                            },
+                            icon: Icon(Icons.location_on, size: 30, color: Colors.red,),
+                          ),
+                          width: 80.0,
+                          height: 80.0,
+                          point: LatLng(6.268762637372491, -75.56821722330325), // Mismo punto que el centro
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
                 Align(
                   alignment: Alignment.topCenter,
                   child: Padding(

@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:searchbot/pages/home_navigation_bar_page.dart';
 import 'package:searchbot/pages/recovery_password.dart';
 import 'package:searchbot/pages/sign_up_page.dart';
@@ -140,7 +141,7 @@ class _SignInPageState extends State<SignInPage> {
         final uid = FirebaseAuth.instance.currentUser?.uid;
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => HomeNavigationBarPage(uid:uid!)),
+          MaterialPageRoute(builder: (context) => HomeNavigationBarPage(LatLng(6.268762637372491, -75.56821722330325), uid:uid!)),
         );
       }
     }
