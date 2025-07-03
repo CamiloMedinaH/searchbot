@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class DetailNegocioPage extends StatefulWidget {
@@ -24,6 +25,9 @@ class _DetailNegocioPageState extends State<DetailNegocioPage> {
     return docSnapshot;
   }
 
+  final uid = FirebaseAuth.instance.currentUser;
+  bool activo = false;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,6 +43,9 @@ class _DetailNegocioPageState extends State<DetailNegocioPage> {
               child: CircularProgressIndicator());
           }
           final negocio = snapshotNegocio.data;
+          print(negocio?['UID']);
+          print(FirebaseAuth.instance.currentUser?.uid);
+          activo = FirebaseAuth.instance.currentUser?.uid==negocio?['UID']?false:true;
           return SingleChildScrollView(
             child: Center(
               child: Column(
@@ -47,6 +54,9 @@ class _DetailNegocioPageState extends State<DetailNegocioPage> {
                   Image(image: AssetImage("assets/images/logo.png"),
                     width: 150,
                     height: 150,
+                  ),
+                  TextFormField(
+                    readOnly: activo,
                   ),
                   SizedBox(height: 16,),
                   Text("Nombre: ${negocio?['nombre']}", style: TextStyle(fontSize: 24),),

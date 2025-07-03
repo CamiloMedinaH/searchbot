@@ -25,8 +25,6 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
 
   late Stream<List<String>> NegociosFuturo;
 
-
-
   int _selectedIndex = 0;
   final searchText = TextEditingController();
   final FirebaseApi _firebaseApi = FirebaseApi();
@@ -46,7 +44,7 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
       _selectedIndex = index;
     });
   }
-
+  late var result=FirebaseAuth.instance.currentUser;
   @override
   void initState() {
     // TODO: implement initState
@@ -56,16 +54,22 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
     loadItems();
   }
 
-  Future<void> loadItems() async {
-    final Popup = await desplegable();
+  void loadItems() {
+    final Popup = desplegable();
     setState(() {
       items = Popup;
     });
   }
 
-  Future<PopupMenuItem<String>> desplegable() async {
-    var result = _firebaseApi.validateSession();
-    if (await result) {
+
+
+  PopupMenuItem<String> desplegable() {
+    print('hola');
+    print(result);
+    result = FirebaseAuth.instance.currentUser;
+    print('hola');
+    print(result);
+    if (result==null) {
       return PopupMenuItem(
           child: Text('Iniciar sesion'),
           onTap: () {
@@ -88,10 +92,9 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
 
   void _onSignOutButtonClicked() {
     _firebaseApi.signOut();
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const SignInPage()),
-    );
+    setState(() {
+      loadItems();
+    });
   }
 
   Stream<List<String>> obtenerNegocios(String uid) {
@@ -123,8 +126,6 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
     }
     return nombres;
   }
-
-
 
   void mostrarMenuLateral(BuildContext context) {
     showGeneralDialog(
@@ -202,6 +203,7 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
                       );
                     },
                   ),
+                  FirebaseAuth.instance.currentUser!=null?
                   ExpansionTile(
                     title: Row(
                       children: [
@@ -212,7 +214,6 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
                     ),
                     children: [
                       widget.uid!.isNotEmpty?
-
                       StreamBuilder<List<String>>(
                         stream: obtenerNegocios(widget.uid!),
                         builder: (context, snapshot) {
@@ -279,7 +280,7 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
                         ),
                       ),
                     ],
-                  ),
+                  ):Text(''),
                   TextButton(
                     child: Row(
                       children: [
@@ -342,49 +343,74 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
           Expanded(
             child: Stack(
               children: [
-                FlutterMap(
-                  options: MapOptions(
-                    initialCenter: posicionActual,
-                    initialZoom: 13.0,
-                  ),
-                  children: [
-                    TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.ejemplo.tumapa',
-                    ),
-                    MarkerLayer(
-                      markers: [
-                        Marker(
-                          child: Builder(
-                            builder: (ctx) => const Icon(
-                              Icons.my_location,
-                              color: Colors.blue,
-                              size: 30,
+                StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance.collection('negocio').snapshots(),
+                  builder: (context, snapshot) {
+                    print(FirebaseFirestore.instance.collection('negocio').snapshots());
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return const Center(child: Text("Ocurrió un error al cargar los datos"));
+                    }
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Center(child: Text("No hay negocios registrados"));
+                    }
+                    final negocios = snapshot.data!.docs;
+                    return FlutterMap(
+                      options: MapOptions(
+                        initialCenter: posicionActual,
+                        initialZoom: 13.0,
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.ejemplo.tumapa',
+                        ),
+                        MarkerLayer(
+                          markers: negocios.map((doc) {
+                            final data = doc.data() as Map<String, dynamic>;
+                            return Marker(
+                                width: 800.0,
+                                height: 80.0,
+                              point: LatLng(data['latitud'], data['longitud']),
+                              child: Column(
+                                children: [
+                                  IconButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => DetailNegocioPage(nID: data['NID'])
+                                        ),
+                                      );
+                                    },
+                                    icon: Icon(Icons.location_on, size: 30, color: Colors.red,),
+                                  ),
+                                  Text(data['nombre'], style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),)
+                                ],
+                              )
+                            );
+                          }).toList(),
+                        ),
+                        MarkerLayer(markers: [
+                          Marker(
+                            child: Builder(
+                              builder: (ctx) => const Icon(
+                                Icons.my_location,
+                                color: Colors.blue,
+                                size: 30,
+                              ),
                             ),
-                          ),
-                          width: 80.0,
-                          height: 80.0,
-                          point: posicionActual, // Mismo punto que el centro
-                        ),
-                        Marker(
-                          child: IconButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => const MyProfilePage()
-                                ),
-                              );
-                            },
-                            icon: Icon(Icons.location_on, size: 30, color: Colors.red,),
-                          ),
-                          width: 80.0,
-                          height: 80.0,
-                          point: LatLng(6.268762637372491, -75.56821722330325), // Mismo punto que el centro
-                        ),
+                            width: 80.0,
+                            height: 80.0,
+                            point: posicionActual, // Mismo punto que el centro
+                          )
+                        ]
+                        )
                       ],
-                    ),
-                  ],
+                    );
+                  },
                 ),
                 Align(
                   alignment: Alignment.topCenter,
@@ -424,7 +450,7 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
                         ],
                       ),
                   ),
-                )
+                ),
               ],
             ),
           )

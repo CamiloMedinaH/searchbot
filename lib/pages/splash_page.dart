@@ -52,7 +52,7 @@ class _SplashPageState extends State<SplashPage> {
       } else {
         Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => SignInPage())
+            MaterialPageRoute(builder: (context) => HomeNavigationBarPage(posicionActual, uid: uid))
         );
       }
     });
