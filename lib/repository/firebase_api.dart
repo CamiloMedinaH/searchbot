@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/user.dart' as UserApp;
 import '../models/negocios.dart' as NegociosApp;
+import '../models/productos.dart' as ProductosApp;
 
 class FirebaseApi {
 
@@ -87,4 +88,24 @@ class FirebaseApi {
       return e.code;
     }
   }
+
+  Future<String> createProductoInDB(ProductosApp.productos producto) async {
+    try {
+      var db = FirebaseFirestore.instance;
+      final ProductosID = await db
+          .collection('productos')
+          .doc();
+      producto.pid = ProductosID.id;
+
+      final userRef = db.collection("negocio").doc(producto.nid).update({
+        "Lproductos": FieldValue.arrayUnion([producto.pid])
+      });
+      final document = await ProductosID.set(producto.toJson());
+      return producto.pid;
+    } on FirebaseException catch (e) {
+      print("FirebaseException ${e.message}");
+      return e.code;
+    }
+  }
+
 }

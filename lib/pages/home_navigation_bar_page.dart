@@ -50,8 +50,8 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
     // TODO: implement initState
     //NegociosFuturo = obtenerNegocios();
     print(widget.uid);
-    super.initState();
     loadItems();
+    super.initState();
   }
 
   void loadItems() {
@@ -62,13 +62,9 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
   }
 
 
-
   PopupMenuItem<String> desplegable() {
-    print('hola');
-    print(result);
     result = FirebaseAuth.instance.currentUser;
-    print('hola');
-    print(result);
+    print("desplegable: $result");
     if (result==null) {
       return PopupMenuItem(
           child: Text('Iniciar sesion'),
@@ -90,8 +86,8 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
     }
   }
 
-  void _onSignOutButtonClicked() {
-    _firebaseApi.signOut();
+  void _onSignOutButtonClicked() async {
+    await FirebaseAuth.instance.signOut();
     setState(() {
       loadItems();
     });
@@ -110,7 +106,7 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
 
   Future<DocumentSnapshot<Map<String, dynamic>>> obtenerUbicacionnes() async {
     final doc = await FirebaseFirestore.instance.collection('negocio').doc().get();
-    print(doc);
+    //print(doc);
     return doc;
   }
 

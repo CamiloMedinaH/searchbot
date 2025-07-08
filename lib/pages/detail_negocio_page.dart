@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:searchbot/models/productos.dart';
+import 'package:searchbot/repository/firebase_api.dart';
 
 class DetailNegocioPage extends StatefulWidget {
 
@@ -10,6 +12,7 @@ class DetailNegocioPage extends StatefulWidget {
 
   final String? nID;
 
+
   @override
   State<DetailNegocioPage> createState() => _DetailNegocioPageState(nID);
 }
@@ -17,16 +20,20 @@ class DetailNegocioPage extends StatefulWidget {
 class _DetailNegocioPageState extends State<DetailNegocioPage> {
   final nID;
 
+  final FirebaseApi _firebaseApi = FirebaseApi();
+
   _DetailNegocioPageState(this.nID);
 
-  Future<DocumentSnapshot<Map<String,dynamic>>> obtenerInformacionDocumento(String id) async {
+  Stream<DocumentSnapshot<Map<String,dynamic>>> obtenerInformacionDocumento(String id) {
     final docRef = FirebaseFirestore.instance.collection('negocio').doc(id);
-    final docSnapshot = await docRef.get();
+    final docSnapshot = docRef.snapshots();
     return docSnapshot;
   }
 
   final uid = FirebaseAuth.instance.currentUser;
   bool activo = false;
+  TextEditingController prueba = TextEditingController(text: 'holaa');
+
 
   @override
   Widget build(BuildContext context) {
@@ -34,8 +41,8 @@ class _DetailNegocioPageState extends State<DetailNegocioPage> {
       appBar: AppBar(
         title: Text('Informacion del Negocio'),
       ),
-      body: FutureBuilder<DocumentSnapshot<Map<String,dynamic>>>(
-        future: obtenerInformacionDocumento(nID),
+      body: StreamBuilder<DocumentSnapshot<Map<String,dynamic>>>(
+        stream: obtenerInformacionDocumento(nID),
         builder: (context, snapshotNegocio) {
           if (snapshotNegocio.connectionState ==
               ConnectionState.waiting) {
@@ -45,6 +52,7 @@ class _DetailNegocioPageState extends State<DetailNegocioPage> {
           final negocio = snapshotNegocio.data;
           print(negocio?['UID']);
           print(FirebaseAuth.instance.currentUser?.uid);
+          prueba.text = negocio?['description'];
           activo = FirebaseAuth.instance.currentUser?.uid==negocio?['UID']?false:true;
           return SingleChildScrollView(
             child: Center(
@@ -55,9 +63,6 @@ class _DetailNegocioPageState extends State<DetailNegocioPage> {
                     width: 150,
                     height: 150,
                   ),
-                  TextFormField(
-                    readOnly: activo,
-                  ),
                   SizedBox(height: 16,),
                   Text("Nombre: ${negocio?['nombre']}", style: TextStyle(fontSize: 24),),
                   SizedBox(height: 16,),
@@ -65,7 +70,30 @@ class _DetailNegocioPageState extends State<DetailNegocioPage> {
                   SizedBox(height: 16,),
                   Text("Descripcion: ${negocio?['description']}", style: TextStyle(fontSize: 24),),
                   SizedBox(height: 16,),
-                  Text("Estado del Negocio ${negocio?['activo']?"activo":"no activo"}", style: TextStyle(fontSize: 24),)
+                  TextFormField(
+                    readOnly: activo,
+                    controller: prueba,
+                    onFieldSubmitted: (a) async {
+                      await FirebaseFirestore.instance
+                          .collection('negocio')
+                          .doc(negocio?['NID'])
+                          .update({'description': a});
+                      print('Actualizado');
+                    },
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: negocio?['description'],
+                    ),
+                  ),
+                  SizedBox(height: 16,),
+                  Text("Estado del Negocio ${negocio?['activo']?"activo":"no activo"}", style: TextStyle(fontSize: 24),),
+                  SizedBox(height: 30,),
+                  ElevatedButton(
+                    onPressed: () {
+                      AgregarProducto();
+                    },
+                    child: Text('Nuevo producto'),
+                  )
                 ],
               ),
             )
@@ -74,4 +102,144 @@ class _DetailNegocioPageState extends State<DetailNegocioPage> {
       ),
     );
   }
+
+  final _nombreP = TextEditingController();
+  final _descriptionP = TextEditingController();
+  final _Precio = TextEditingController();
+  final _Unidades = TextEditingController();
+
+  void AgregarProducto() {
+    showGeneralDialog(
+      context: context,
+      barrierLabel: "Menu",
+      barrierDismissible: true,
+      barrierColor: Colors.black.withOpacity(0.5), // fondo opaco
+      transitionDuration: Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Align(
+          alignment: Alignment.center,
+          child: Material(
+            color: Colors.white,
+            child: StatefulBuilder(
+              builder: (BuildContext context, StateSetter setModalState) {
+                return Container(
+                  width: MediaQuery.of(context).size.width * 0.7,
+                  height: MediaQuery.of(context).size.height * 0.6,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: SingleChildScrollView(
+                      child: Center(
+                        child: Container(
+                          width: 200,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Image(image: AssetImage("assets/images/logo.png"),
+                                width: 150,
+                                height: 150,
+                              ),
+                              SizedBox(height: 16,),
+                              TextFormField(
+                                controller: _nombreP,
+                                decoration: const InputDecoration(
+                                    border: OutlineInputBorder(), labelText: "Nombre del Producto"),
+                                keyboardType: TextInputType.text,
+                              ),
+                              SizedBox(height: 16,),
+                              TextFormField(
+                                controller: _descriptionP,
+                                decoration: const InputDecoration(
+                                    border: OutlineInputBorder(), labelText: "Descripcion del Producto"),
+                                keyboardType: TextInputType.text,
+                              ),
+                              SizedBox(height: 16,),
+                              TextFormField(
+                                controller: _Precio,
+                                decoration: const InputDecoration(
+                                    border: OutlineInputBorder(), labelText: "Precio del Producto"),
+                                keyboardType: TextInputType.number,
+                              ),
+                              SizedBox(height: 16,),
+                              TextFormField(
+                                controller: _Unidades,
+                                decoration: const InputDecoration(
+                                    border: OutlineInputBorder(), labelText: "Unidades del Producto"),
+                                keyboardType: TextInputType.number,
+                              ),
+                              SizedBox(height: 16,),
+                              Row(
+                                children: [
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                    },
+                                    child: Text('Cancelar'),
+                                  ),
+                                  SizedBox(width: 10,),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      _GuardarProducto();
+                                    },
+                                    child: Text('Guardar'),
+                                  ),
+                                ],
+                              )
+                            ],
+                          ),
+                        )
+                      ),
+                    )
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final slide = Tween<Offset>(
+          begin: const Offset(-1, 0),
+          end: const Offset(0, 0),
+        ).animate(animation);
+        return SlideTransition(
+          position: slide,
+          child: child,
+        );
+      },
+    );
+  }
+
+  void _GuardarProducto() async {
+
+    var picture = "";
+    var producto = productos(
+      _descriptionP.text,
+      _nombreP.text,
+      picture,
+      _Precio.text,
+      _Unidades.text,
+      nID,
+      "",
+    );
+    var result = await _firebaseApi.createProductoInDB(producto);
+
+    if (result == 'network-request-failed'){
+      showMsg('Revise su conexion a internet');
+    } else {
+      showMsg('Producto guardada');
+      Navigator.pop(context);
+    }
+  }
+
+  void showMsg(String msg) {
+    final scaffold = ScaffoldMessenger.of(context);
+    scaffold.showSnackBar(
+        SnackBar(content: Text(msg),
+            duration: Duration(seconds: 10),
+            action: SnackBarAction(
+                label: "Aceptar",
+                onPressed: scaffold.hideCurrentSnackBar))
+    );
+  }
+
 }
