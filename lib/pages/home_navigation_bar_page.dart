@@ -2,13 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:searchbot/pages/detail_negocio_page.dart';
 import 'package:searchbot/pages/my_profile_page.dart';
 import 'package:searchbot/pages/nuevo_negocio.dart';
 import 'package:searchbot/pages/sign_in_page.dart';
-import 'package:searchbot/pages/sign_up_page.dart';
-
 import 'package:searchbot/repository/firebase_api.dart';
 
 class HomeNavigationBarPage extends StatefulWidget {
@@ -31,27 +30,49 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
 
   late PopupMenuItem<String> items;
 
-  static const List<Widget> _widgetOptions = [
-    MyProfilePage(),
-    MyProfilePage()
-  ];
 
-  final posicionActual;
+
+  late final posicionActual;
   _HomeNavigationBarPageState(this.posicionActual);
 
-  void _onItemTapped(int index) {
+  Future<void> obtenerUbicacion() async {
+    bool servicioHabilitado = await Geolocator.isLocationServiceEnabled();
+    if (!servicioHabilitado) {
+      return; // Debes pedir al usuario que habilite la ubicación.
+    }
+    LocationPermission permiso = await Geolocator.checkPermission();
+    if (permiso == LocationPermission.denied) {
+      permiso = await Geolocator.requestPermission();
+      if (permiso == LocationPermission.denied) {
+        return; // El usuario denegó el permiso.
+      }
+    }
+    if (permiso == LocationPermission.deniedForever) {
+      return; // El usuario bloqueó los permisos.
+    }
+    Position posicion = await Geolocator.getCurrentPosition();
     setState(() {
-      _selectedIndex = index;
+      posicionActual = LatLng(posicion.latitude, posicion.longitude);
     });
   }
+
   late var result=FirebaseAuth.instance.currentUser;
   @override
   void initState() {
     // TODO: implement initState
     //NegociosFuturo = obtenerNegocios();
-    print(widget.uid);
+    //print(widget.uid);
     loadItems();
+    obtenerUbicacion();
     super.initState();
+    searchText.addListener(() {
+    final texto = searchText.text.trim();
+    if (texto.isEmpty) {
+    setState(() {
+    negociosEncontrados.clear();
+    });
+    }
+    });
   }
 
   void loadItems() {
@@ -221,7 +242,6 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
                           final negocios = snapshot.data ?? [];
                           if (negocios.isEmpty)
                             return Center(child: Text('Sin negocios'));
-
                           return FutureBuilder<List<String>>(
                                   future: obtenerNombresDeNegocios(negocios),
                                   builder: (context, snapshotNombres) {
@@ -252,7 +272,6 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
                                       ),
                                     );
                                   });
-
                         },
                       ):Text(""),
 
@@ -331,6 +350,35 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
     );
   }
 
+
+  List<Map<String, dynamic>> negociosEncontrados = [];
+  bool buscando = false;
+  Future<void> buscarProductoEnNegocios(String nombreProducto) async {
+    setState(() {
+      buscando = true;
+      negociosEncontrados.clear();
+    });
+    final negocios = await FirebaseFirestore.instance.collection('negocio').get();
+    for (var negocioDoc in negocios.docs) {
+      final productosSnap = await FirebaseFirestore.instance
+          .collection('negocio')
+          .doc(negocioDoc.id)
+          .collection('productos')
+          .where('nombre', isEqualTo: nombreProducto)
+          .get();
+      if (productosSnap.docs.isNotEmpty) {
+        final data = negocioDoc.data();
+        negociosEncontrados.add({
+          'nombre': data['nombre'] ?? 'Sin nombre',
+          'NID': data['NID'] ?? negocioDoc.id, // usa campo NID si existe, si no, usa ID del documento
+        });
+      }
+    }
+    setState(() {
+      buscando = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -339,75 +387,7 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
           Expanded(
             child: Stack(
               children: [
-                StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance.collection('negocio').snapshots(),
-                  builder: (context, snapshot) {
-                    print(FirebaseFirestore.instance.collection('negocio').snapshots());
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (snapshot.hasError) {
-                      return const Center(child: Text("Ocurrió un error al cargar los datos"));
-                    }
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                      return const Center(child: Text("No hay negocios registrados"));
-                    }
-                    final negocios = snapshot.data!.docs;
-                    return FlutterMap(
-                      options: MapOptions(
-                        initialCenter: posicionActual,
-                        initialZoom: 13.0,
-                      ),
-                      children: [
-                        TileLayer(
-                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName: 'com.ejemplo.tumapa',
-                        ),
-                        MarkerLayer(
-                          markers: negocios.map((doc) {
-                            final data = doc.data() as Map<String, dynamic>;
-                            return Marker(
-                                width: 800.0,
-                                height: 80.0,
-                              point: LatLng(data['latitud'], data['longitud']),
-                              child: Column(
-                                children: [
-                                  IconButton(
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => DetailNegocioPage(nID: data['NID'])
-                                        ),
-                                      );
-                                    },
-                                    icon: Icon(Icons.location_on, size: 30, color: Colors.red,),
-                                  ),
-                                  Text(data['nombre'], style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),)
-                                ],
-                              )
-                            );
-                          }).toList(),
-                        ),
-                        MarkerLayer(markers: [
-                          Marker(
-                            child: Builder(
-                              builder: (ctx) => const Icon(
-                                Icons.my_location,
-                                color: Colors.blue,
-                                size: 30,
-                              ),
-                            ),
-                            width: 80.0,
-                            height: 80.0,
-                            point: posicionActual, // Mismo punto que el centro
-                          )
-                        ]
-                        )
-                      ],
-                    );
-                  },
-                ),
+                MapaNegocios(posicionActual: posicionActual),
                 Align(
                   alignment: Alignment.topCenter,
                   child: Padding(
@@ -440,9 +420,51 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
                                     items
                                   ],
                                 ),
-                                labelText: "Buscar"),
+                                labelText: "Buscar",
+                            ),
+                            onFieldSubmitted: (searchText) {
+                              final nombreBuscado = searchText.trim();
+                              if (nombreBuscado.isNotEmpty) {
+                                buscarProductoEnNegocios(nombreBuscado);
+                              }
+                            },
                             keyboardType: TextInputType.visiblePassword,
                           ),
+                          SizedBox(height: 16,),
+                          buscando
+                              ? CircularProgressIndicator()
+                              :negociosEncontrados.isNotEmpty
+                              ? Column(
+                            children: negociosEncontrados.map((negocio) {
+                              return Container(
+                                margin: const EdgeInsets.symmetric(vertical: 5),
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.deepPurple[100],
+                                    foregroundColor: Colors.deepPurple[900],
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) => DetailNegocioPage(nID: negocio['NID'],)
+                                      ),
+                                    );
+                                  },
+                                  child: Text(
+                                    negocio['nombre'],
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          )
+                              : SizedBox.shrink(),
                         ],
                       ),
                   ),
@@ -452,6 +474,78 @@ class _HomeNavigationBarPageState extends State<HomeNavigationBarPage> {
           )
         ],
       )
+    );
+  }
+}
+
+class MapaNegocios extends StatelessWidget {
+  final LatLng posicionActual;
+
+  const MapaNegocios({super.key, required this.posicionActual});
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('negocio').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(child: Text("No hay negocios registrados"));
+        }
+
+        final negocios = snapshot.data!.docs;
+        return FlutterMap(
+          options: MapOptions(
+            initialCenter: posicionActual ?? LatLng(4.6097, -74.0817),  // <- posición actual
+            initialZoom: 13.0,
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.ejemplo.tumapa',
+            ),
+            MarkerLayer(
+              markers: [
+                ...negocios.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  return Marker(
+                    width: 800.0,
+                    height: 80.0,
+                    point: LatLng(data['latitud'], data['longitud']),
+                    child: Column(
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => DetailNegocioPage(nID: data['NID']),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.location_on, size: 30, color: Colors.red),
+                        ),
+                        Text(
+                          data['nombre'],
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                //
+                Marker(
+                  point: posicionActual,
+                  width: 60,
+                  height: 60,
+                  child: const Icon(Icons.my_location, size: 30, color: Colors.blue),
+                ),
+              ],
+            )
+          ],
+        );
+      },
     );
   }
 }

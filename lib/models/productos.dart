@@ -5,11 +5,10 @@ class productos {
   var _precio;
   var _unidades;
   var _pic;
-  var _nid;
   var _pid;
 
   productos(this._description, this._name, this._pic, this._precio, this._unidades,
-      this._nid, this._pid);
+      this._pid);
 
   get pic => _pic;
 
@@ -42,12 +41,6 @@ class productos {
   }
 
 
-  get nid => _nid;
-
-  set nid(value) {
-    _nid = value;
-  }
-
   get pid => _pid;
 
   set pid(value) {
@@ -55,7 +48,6 @@ class productos {
   }
 
   Map<String, dynamic> toJson() => {
-    "NID": _nid,
     "nombre": _name,
     "description": _description,
     "PID": _pid,
@@ -65,8 +57,7 @@ class productos {
   };
 
   productos.fromJson(Map<String, dynamic> json)
-      : _nid = json['NID'],
-        _name = json['nombre'],
+      : _name = json['nombre'],
         _description= json['description'],
         _pid= json['PID'],
         _precio= json['Precio'],

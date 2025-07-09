@@ -34,6 +34,18 @@ class _DetailNegocioPageState extends State<DetailNegocioPage> {
   bool activo = false;
   TextEditingController prueba = TextEditingController(text: 'holaa');
 
+  Stream<List<String>> obtenerProductos(String nid) {
+    return FirebaseFirestore.instance
+        .collection('negocio')
+        .doc(nid)
+        .collection('productos')
+        .doc()
+        .snapshots()
+        .map((doc){
+      final data = doc.data();
+      return List<String>.from(data?['PID'] ?? []);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,13 +99,107 @@ class _DetailNegocioPageState extends State<DetailNegocioPage> {
                   ),
                   SizedBox(height: 16,),
                   Text("Estado del Negocio ${negocio?['activo']?"activo":"no activo"}", style: TextStyle(fontSize: 24),),
-                  SizedBox(height: 30,),
-                  ElevatedButton(
+                  SizedBox(height: 10,),
+
+                  Container(
+                    width: MediaQuery.of(context).size.width*0.8,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 6,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ExpansionTile(
+                      title: Row(
+                        children: [
+                          //Icon(Icons.),
+                          SizedBox(width: 10,),
+                          Text( "Productos", style: TextStyle(color: Colors.deepPurple))
+                        ],
+                      ),
+                      children: [
+                        //widget.uid!.isNotEmpty?
+                        StreamBuilder<QuerySnapshot>(
+                          stream: FirebaseFirestore.instance.collection('negocio').doc(nID).collection('productos').snapshots(),
+                          builder: (context, snapshot) {
+                            if (snapshot.hasError){
+                              return const Center(child: Text('Error al cargar los productos'),);
+                            }
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return const Center(child: CircularProgressIndicator(),);
+                            }
+                            final productos = snapshot.data!.docs;
+                            return Wrap(
+                              spacing: 8.0,
+                              runSpacing: 8.0,
+                              children: productos.map((doc) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                final nombre = data['nombre'] ?? 'Sin nombre';
+                                final unidades = data['Unidades'] ?? 'Sin unidades';
+                                final precios = data['Precio'] ?? 'Sin precio';
+                                final pid = data['PID'] ?? '';
+                                return Row(
+                                  children: [
+                                    Image(image: AssetImage("assets/images/logo.png"),
+                                      width: 50,
+                                      height: 50,
+                                    ),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(nombre, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),),
+                                        Row(
+                                          children: [
+                                            Text('Unidades: $unidades', style: TextStyle(color: Colors.grey[600])),
+                                            SizedBox(width: 10,),
+                                            Text('C/U: $precios', style: TextStyle(color: Colors.grey[600])),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                    Spacer(),
+                                    !activo? IconButton(
+                                      onPressed: () async {
+                                        try {
+                                          await FirebaseFirestore.instance
+                                              .collection('negocio')
+                                              .doc(nID) // ID del negocio
+                                              .collection('productos')
+                                              .doc(pid) // ID del producto
+                                              .delete();
+
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text("Producto eliminado")),
+                                          );
+                                        } catch (e) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text("Error al eliminar: $e")),
+                                          );
+                                        }
+                                      },
+                                      icon: Icon(Icons.delete),
+                                    ):Text('')
+                                  ],
+                                );
+                              }).toList(),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 10,),
+                  !activo? ElevatedButton(
                     onPressed: () {
                       AgregarProducto();
                     },
                     child: Text('Nuevo producto'),
-                  )
+                  ):Text('')
                 ],
               ),
             )
@@ -218,10 +324,9 @@ class _DetailNegocioPageState extends State<DetailNegocioPage> {
       picture,
       _Precio.text,
       _Unidades.text,
-      nID,
       "",
     );
-    var result = await _firebaseApi.createProductoInDB(producto);
+    var result = await _firebaseApi.createProductoInDB(producto, nID);
 
     if (result == 'network-request-failed'){
       showMsg('Revise su conexion a internet');

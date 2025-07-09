@@ -89,17 +89,18 @@ class FirebaseApi {
     }
   }
 
-  Future<String> createProductoInDB(ProductosApp.productos producto) async {
+  Future<String> createProductoInDB(ProductosApp.productos producto, nid) async {
     try {
       var db = FirebaseFirestore.instance;
       final ProductosID = await db
+          .collection('negocio')
+          .doc(nid)
           .collection('productos')
           .doc();
       producto.pid = ProductosID.id;
-
-      final userRef = db.collection("negocio").doc(producto.nid).update({
-        "Lproductos": FieldValue.arrayUnion([producto.pid])
-      });
+      //final userRef = db.collection("negocio").doc(producto.nid).update({
+      //  "Lproductos": FieldValue.arrayUnion([producto.pid])
+      //});
       final document = await ProductosID.set(producto.toJson());
       return producto.pid;
     } on FirebaseException catch (e) {
